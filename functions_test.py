@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import os
 import yfinance as yf
+import requests
 
 
 # +
@@ -62,17 +63,15 @@ def get_current_price(ticker_symbol):
     - float: The closing price of the stock for the latest trading day.
     """
     
-    # Create a Ticker object for the given ticker symbol to fetch its data
-    stock = yf.Ticker(ticker_symbol)
-    
-    # Fetch the historical data for the stock for the latest trading day
-    hist = stock.history(period="1d")
-    
-    # Extract the closing price from the historical data
-    closing_price = hist['Close'].iloc[0]
+    url = "https://financialmodelingprep.com/api/v3/quote-short/" + ticker_symbol
+    params = {
+        "apikey": "c8cda59957e87eead4f323aab454cefa"}
+    response = requests.get(url, params=params)
+    data = response.json()
+    price = data[0]["price"]
     
     # Return the closing price
-    return closing_price
+    return price
 
 
 def get_operation_id():
@@ -122,7 +121,9 @@ def profit_user():
     
     grouped.to_csv("ranking_users.csv", index=False)
     
-    print(grouped)
+    sorted_profitability = grouped.sort_values(ascending=False)
+
+    print(sorted_profitability)
     
     return
 
@@ -222,20 +223,24 @@ def update_dataset():
         #Active Transaction
         if df.loc[i,"status_transaction"]==1:
             #Long Operations
+            
             if df.loc[i,"operation"]=="long":
+                
                 #Get ticker
                 ticker = df.loc[i, "ticker"]
                 #Get Current price for ticker
                 current_price = get_current_price(ticker)
+                df.loc[i, "current_price"]=current_price
                 #Get purchased price 
                 purchased_price = df.loc[i, "price_purchased"]
                 #Get Profitability
-                profitability = round(100*((current_price-purchased_price)/purchased_price),2)
+                profitability = 1+round(((current_price-purchased_price)/purchased_price),5)
                 df.loc[i, "profitability"] = profitability
                 #Stop Loss?
                 stop_loss = df.loc[i, "stop_loss"]
                 # #Take_profit?
                 take_profit = df.loc[i, "take_profit"]
+                
                 #Update in case
                 if current_price<stop_loss:
                     df.loc[i, "status_transaction"] = 0
@@ -243,20 +248,24 @@ def update_dataset():
                 elif current_price>take_profit:
                     df.loc[i, "status_transaction"] = 0
                     df.loc[i, "timestamp_exit"] = get_timestamp()
+                    
             elif df.loc[i,"operation"]=="short":
+                
                 #Get ticker
                 ticker = df.loc[i, "ticker"]
                 #Get Current price for ticker
                 current_price = get_current_price(ticker)
+                df.loc[i, "current_price"]=current_price
                 #Get purchased price 
                 purchased_price = df.loc[i, "price_purchased"]
                 #Get Profitability
-                profitability = round(100*((purchased_price-current_price)/purchased_price),2)
+                profitability = 1+round(((purchased_price-current_price)/purchased_price),5)
                 df.loc[i, "profitability"] = profitability
                 #Stop Loss?
                 stop_loss = df.loc[i, "stop_loss"]
                 # #Take_profit?
                 take_profit = df.loc[i, "take_profit"]
+                
                 #Update in case
                 if current_price>stop_loss:
                     df.loc[i, "status_transaction"] = 0
@@ -265,14 +274,52 @@ def update_dataset():
                     df.loc[i, "status_transaction"] = 0
                     df.loc[i, "timestamp_exit"] = get_timestamp()
     
+    df.to_csv('transactions.csv', index=False)
     
     return
+
+
 # -
 
+def get_user_id_operations(user_id):
+    df = pd.read_csv('transactions.csv')
+    # getting transactions with status active
 
 
+    df_user = df[df["user_id"]==user_id]
+    
+    print(df_user)
+    
+    return
+
+# +
+# view_transactions()
+
+# +
+# update_dataset()
+
+# +
+# view_transactions()
+
+# +
+# def get_user_id_operations(user_id):
+#     df = pd.read_csv('transactions.csv')
+#     # getting transactions with status active
 
 
+#     df_user = df[df["user_id"]==user_id]
 
+# +
+# get_current_price("AAPL")
+
+# +
+# user_id=3
+
+# df = pd.read_csv('transactions.csv')
+# # getting transactions with status active
+
+
+# df
+# -
 
 
